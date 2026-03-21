@@ -1,36 +1,49 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Performance Management HR System
 
-## Getting Started
+A full-stack HR performance management application built with Next.js, integrating Anthropic's Claude API for AI-assisted evaluations and Google Sheets for data persistence.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Manager Dashboard: Submit monthly performance reviews (Output, Attendance, Teamwork).
+- AI Feedback Improvement: Automatically rewrite manager comments to be professional and actionable.
+- Low Score Action Plans: Generate an immediate growth plan if an employee scores 2 or below.
+- HR Assistant Chat: Ask natural language questions about existing reviews and employees.
+- Employee View: See historical performance and receive an AI-generated 3-month trend summary.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Tech Stack
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Framework: Next.js (App Router)
+- Language: TypeScript
+- Styling: Tailwind CSS
+- Icons: Lucide React
+- AI Integration: Anthropic API (Claude 3 Haiku)
+- Database: Google Sheets API
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Environment Variables
 
-## Learn More
+Create a `.env.local` file in the root directory with the following keys:
 
-To learn more about Next.js, take a look at the following resources:
+CLAUDE_API_KEY="your-anthropic-api-key"
+CLAUDE_MODEL="claude-3-haiku-20240307"
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+GOOGLE_SPREADSHEET_ID="your-google-spreadsheet-id"
+GOOGLE_SHEET_NAME="Sheet1"
+GOOGLE_SERVICE_ACCOUNT_JSON='{"type":"service_account",...}'
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Installation
 
-## Deploy on Vercel
+1. Clone the repository and install dependencies:
+   npm install
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+2. Run the development server:
+   npm run dev
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+3. Open http://localhost:3000 in your browser.
+
+## Application Structure
+
+- /src/app/manager: Manager dashboard, review form, and HR chat.
+- /src/app/employee: Employee view and trend summaries.
+- /src/app/api/ai/*: Claude API routes for text improvement, action plans, and HR queries.
+- /src/lib/claude.ts: Core AI prompting and Anthropic SDK wrapper.
+- /src/lib/google-sheets.ts: Data persistence and retrieval logic.

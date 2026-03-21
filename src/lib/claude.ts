@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { Review } from "./types";
+import { User } from "./auth";
 
 // Provide a mock client if there's no API key to prevent crashes in local dev without env vars
 let anthropic: Anthropic | null = null;
@@ -64,6 +65,68 @@ Write a short, engaging 2-3 sentence summary addressed directly to the employee.
   const response = await anthropic.messages.create({
     model: model,
     max_tokens: 200,
+    messages: [
+      { role: "user", content: prompt }
+    ]
+  });
+
+  return (response.content[0] as any).text.trim();
+}
+
+/**
+ * Meaningful AI Integration 3: Action Plan for Low Scorers
+ * Generates an improvement plan if scores are low.
+ */
+export async function generateImprovementPlan(scores: { outputQuality: number, attendance: number, teamwork: number}, currentComment: string): Promise<string> {
+  if (!anthropic) {
+    return "- Focus on missing areas.\n- Meet weekly. (AI: Please add CLAUDE_API_KEY)";
+  }
+
+  const prompt = `You are an expert HR coach. A manager is evaluating an employee who received low scores in certain areas. 
+Scores: Output Quality: ${scores.outputQuality}/5, Attendance: ${scores.attendance}/5, Teamwork: ${scores.teamwork}/5.
+Manager's draft comment so far: "${currentComment}"
+
+Generate a short, constructive 2-3 bullet point action plan for this employee to improve their low-scoring areas. Write it such that the manager can append it directly to the performance review comment. Keep it very plain English, empathetic yet direct. Return ONLY the bullet points.`;
+
+  const response = await anthropic.messages.create({
+    model: model,
+    max_tokens: 250,
+    messages: [
+      { role: "user", content: prompt }
+    ]
+  });
+
+  return (response.content[0] as any).text.trim();
+}
+
+/**
+ * Meaningful AI Integration 4: HR Assistant Chat
+ */
+export async function answerHrQuestion(question: string, reviews: Review[], employees: User[]): Promise<string> {
+  if (!anthropic) {
+    return "I am unable to answer without an API key. Please configure CLAUDE_API_KEY.";
+  }
+
+  const reviewsSummary = reviews.map(r => `[Employee: ${r.employeeEmail}, Month: ${r.month}, Output: ${r.outputQuality}, Attendance: ${r.attendance}, Teamwork: ${r.teamwork}, Comment: "${r.comment}"]`).join("\n");
+  const employeesSummary = employees.map(e => `[Name: ${e.name}, Email: ${e.email}, Role: ${e.role}]`).join("\n");
+
+  const prompt = `You are a helpful and intelligent HR Assistant for a Manager.
+You have access to the following raw data about employees and their performance reviews.
+
+EMPLOYEES:
+${employeesSummary}
+
+REVIEWS:
+${reviewsSummary}
+
+The manager is asking the following question:
+"${question}"
+
+Answer to the best of your ability using ONLY the data provided above. If you don't know or if the data doesn't contain the answer, say so directly. Be concise, friendly, and plain English.`;
+
+  const response = await anthropic.messages.create({
+    model: model,
+    max_tokens: 300,
     messages: [
       { role: "user", content: prompt }
     ]

@@ -25,6 +25,11 @@ export default function ReviewForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [error, setError] = useState("");
+  
+  const [improvementPlan, setImprovementPlan] = useState("");
+  const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
+  
+  const hasLowScore = outputQuality <= 2 || attendance <= 2 || teamwork <= 2;
 
   const handleImproveFeedback = async () => {
     if (!comment.trim()) {
@@ -53,6 +58,28 @@ export default function ReviewForm() {
       setError(err.message || "An error occurred while calling Claude API.");
     } finally {
       setIsImproving(false);
+    }
+  };
+
+  const handleGeneratePlan = async () => {
+    setIsGeneratingPlan(true);
+    setError("");
+    try {
+      const res = await fetch("/api/ai/improvement-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          scores: { outputQuality, attendance, teamwork },
+          comment
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to generate plan");
+      setImprovementPlan(data.plan);
+    } catch (err: any) {
+      setError(err.message || "Failed to generate plan");
+    } finally {
+      setIsGeneratingPlan(false);
     }
   };
 
@@ -201,6 +228,42 @@ export default function ReviewForm() {
         <p className="mt-2 text-sm text-gray-500">
           Tip: Write a quick draft, then use the "Improve with AI" button to make it more professional.
         </p>
+
+        {hasLowScore && (
+          <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-md mt-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <h5 className="text-sm font-medium text-yellow-800">Low Score Detected</h5>
+                <p className="text-xs text-yellow-700 mt-1">A score of 2 or below suggests the employee needs an action plan.</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleGeneratePlan}
+                disabled={isGeneratingPlan}
+                className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 disabled:bg-yellow-400 transition-colors"
+              >
+                {isGeneratingPlan ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Sparkles className="w-4 h-4 mr-1" />}
+                Generate Plan
+              </button>
+            </div>
+            {improvementPlan && (
+              <div className="mt-3 bg-white p-3 rounded border border-yellow-200 text-sm text-gray-700 whitespace-pre-wrap">
+                <strong className="block mb-2 text-gray-900">Suggested Action Plan:</strong>
+                {improvementPlan}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setComment(prev => prev ? `${prev}\n\nAction Plan:\n${improvementPlan}` : `Action Plan:\n${improvementPlan}`);
+                    setImprovementPlan("");
+                  }}
+                  className="mt-3 text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center"
+                >
+                  + Append to my comments
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="pt-4 flex justify-end">

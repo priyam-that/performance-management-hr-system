@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
 import Header from "@/components/Header";
 import ReviewForm from "./ReviewForm"; // We will create this
+import HrAssistant from "./HrAssistant";
 
 export default async function ManagerDashboard() {
   const user = await getCurrentUser();
@@ -12,20 +13,26 @@ export default async function ManagerDashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header user={user} />
-      <main className="max-w-4xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
+      <main className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
         <div className="md:flex md:items-center md:justify-between mb-8">
           <div className="flex-1 min-w-0">
             <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-              Submit Monthly Performance Review
+              Manager Dashboard
             </h2>
             <p className="mt-1 text-sm text-gray-500">
-              Evaluate your team members on core dimensions and provide constructive feedback.
+              Submit monthly performance reviews and ask the HR Assistant questions.
             </p>
           </div>
         </div>
 
-        <div className="bg-white shadow rounded-lg p-6">
-          <ReviewForm />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 bg-white shadow rounded-lg p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-6 border-b border-gray-100 pb-2">New Review</h3>
+            <ReviewForm />
+          </div>
+          <div className="lg:col-span-1">
+            <HrAssistant />
+          </div>
         </div>
       </main>
     </div>
