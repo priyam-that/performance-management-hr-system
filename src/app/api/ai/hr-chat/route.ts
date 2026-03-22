@@ -1,20 +1,25 @@
 import { NextResponse } from "next/server";
-import { answerHrQuestion } from "@/lib/claude";
+import { answerHrQuestion, ChatMessage } from "@/lib/claude";
 import { getAllReviews } from "@/lib/google-sheets";
 import { USERS } from "@/lib/auth";
 
 export async function POST(req: Request) {
   try {
-    const { question } = await req.json();
+    const { question, history = [] } = await req.json();
 
     if (!question) {
       return NextResponse.json({ error: "Missing question" }, { status: 400 });
     }
 
     const allReviews = await getAllReviews();
-    const employees = USERS.filter(u => u.role === "employee");
+    const employees = USERS.filter((u) => u.role === "employee");
 
-    const answer = await answerHrQuestion(question, allReviews, employees);
+    const answer = await answerHrQuestion(
+      question,
+      allReviews,
+      employees,
+      history as ChatMessage[]
+    );
     return NextResponse.json({ answer });
   } catch (error: any) {
     console.error("Error answering HR question:", error);

@@ -75,61 +75,114 @@ Write a short, engaging 2-3 sentence summary addressed directly to the employee.
 
 /**
  * Meaningful AI Integration 3: Action Plan for Low Scorers
- * Generates an improvement plan if scores are low.
+ * Generates a tailored, score-aware improvement plan for employees with low ratings.
  */
-export async function generateImprovementPlan(scores: { outputQuality: number, attendance: number, teamwork: number}, currentComment: string): Promise<string> {
+export async function generateImprovementPlan(
+  scores: { outputQuality: number; attendance: number; teamwork: number },
+  currentComment: string
+): Promise<string> {
   if (!anthropic) {
     return "- Focus on missing areas.\n- Meet weekly. (AI: Please add CLAUDE_API_KEY)";
   }
 
-  const prompt = `You are an expert HR coach. A manager is evaluating an employee who received low scores in certain areas. 
-Scores: Output Quality: ${scores.outputQuality}/5, Attendance: ${scores.attendance}/5, Teamwork: ${scores.teamwork}/5.
-Manager's draft comment so far: "${currentComment}"
+  // Determine which areas are actually weak so the plan is targeted
+  const weakAreas: string[] = [];
+  if (scores.outputQuality <= 2)
+    weakAreas.push(`Output Quality (${scores.outputQuality}/5)`);
+  if (scores.attendance <= 2)
+    weakAreas.push(`Attendance & Reliability (${scores.attendance}/5)`);
+  if (scores.teamwork <= 2)
+    weakAreas.push(`Teamwork & Collaboration (${scores.teamwork}/5)`);
 
-Generate a short, constructive 2-3 bullet point action plan for this employee to improve their low-scoring areas. Write it such that the manager can append it directly to the performance review comment. Keep it very plain English, empathetic yet direct. Return ONLY the bullet points.`;
+  const weakAreasList = weakAreas.join(", ");
+
+  const prompt = `You are a seasoned HR coach crafting a personalized 30-day improvement plan for an employee.
+
+Performance scores:
+- Output Quality: ${scores.outputQuality}/5
+- Attendance & Reliability: ${scores.attendance}/5
+- Teamwork & Collaboration: ${scores.teamwork}/5
+
+Weak areas requiring attention: ${weakAreasList}
+Manager's current comment: "${currentComment || "(no comment yet)"}"
+
+Your task:
+Write EXACTLY 3 bullet points as a focused action plan. Each bullet must:
+1. Target a specific weak area by name
+2. Suggest ONE concrete, measurable action (e.g. "attend all standups for 4 consecutive weeks", "submit deliverables 24 hours before deadline")
+3. Be empathetic in tone — motivating, not punitive
+
+Do NOT use generic advice like "improve communication" or "try harder". Be creative and specific.
+Return ONLY the 3 bullet points, no preamble, no heading.`;
 
   const response = await anthropic.messages.create({
     model: model,
-    max_tokens: 250,
-    messages: [
-      { role: "user", content: prompt }
-    ]
+    max_tokens: 350,
+    messages: [{ role: "user", content: prompt }],
   });
 
   return (response.content[0] as any).text.trim();
 }
 
+export type ChatMessage = { role: "user" | "assistant"; content: string };
+
 /**
  * Meaningful AI Integration 4: HR Assistant Chat
+ * Supports multi-turn conversation history for contextual, non-repetitive answers.
  */
-export async function answerHrQuestion(question: string, reviews: Review[], employees: User[]): Promise<string> {
+export async function answerHrQuestion(
+  question: string,
+  reviews: Review[],
+  employees: User[],
+  history: ChatMessage[] = []
+): Promise<string> {
   if (!anthropic) {
     return "I am unable to answer without an API key. Please configure CLAUDE_API_KEY.";
   }
 
-  const reviewsSummary = reviews.map(r => `[Employee: ${r.employeeEmail}, Month: ${r.month}, Output: ${r.outputQuality}, Attendance: ${r.attendance}, Teamwork: ${r.teamwork}, Comment: "${r.comment}"]`).join("\n");
-  const employeesSummary = employees.map(e => `[Name: ${e.name}, Email: ${e.email}, Role: ${e.role}]`).join("\n");
+  const reviewsSummary =
+    reviews.length === 0
+      ? "No reviews have been submitted yet."
+      : reviews
+          .map(
+            (r) =>
+              `• ${r.employeeEmail} | ${r.month} | Output: ${r.outputQuality}/5, Attendance: ${r.attendance}/5, Teamwork: ${r.teamwork}/5 | "${r.comment}"`
+          )
+          .join("\n");
 
-  const prompt = `You are a helpful and intelligent HR Assistant for a Manager.
-You have access to the following raw data about employees and their performance reviews.
+  const employeesSummary = employees
+    .map((e) => `• ${e.name} (${e.email})`)
+    .join("\n");
 
-EMPLOYEES:
+  const systemPrompt = `You are a sharp, friendly HR Assistant embedded in a performance management tool. A manager is chatting with you.
+
+You have access to the following live data:
+
+=== EMPLOYEES ===
 ${employeesSummary}
 
-REVIEWS:
+=== PERFORMANCE REVIEWS ===
 ${reviewsSummary}
 
-The manager is asking the following question:
-"${question}"
+Rules:
+- Answer ONLY using the data above. If data is missing or insufficient, say so briefly and helpfully.
+- Be concise: 1-3 sentences max unless the manager explicitly asks for a detailed breakdown.
+- Vary your tone and wording — never start two consecutive answers the same way.
+- Use plain English. No jargon. No bullet lists unless the question clearly calls for one.
+- If the question is ambiguous, make a reasonable assumption and state it in one clause.
+- Do NOT repeat yourself or hedge excessively. Be direct and confident.`;
 
-Answer to the best of your ability using ONLY the data provided above. If you don't know or if the data doesn't contain the answer, say so directly. Be concise, friendly, and plain English.`;
+  // Build the multi-turn message array
+  const messages: { role: "user" | "assistant"; content: string }[] = [
+    ...history,
+    { role: "user", content: question },
+  ];
 
   const response = await anthropic.messages.create({
     model: model,
-    max_tokens: 300,
-    messages: [
-      { role: "user", content: prompt }
-    ]
+    max_tokens: 400,
+    system: systemPrompt,
+    messages,
   });
 
   return (response.content[0] as any).text.trim();

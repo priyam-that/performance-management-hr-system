@@ -1,7 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { appendReviewRow } from "@/lib/google-sheets";
+import { appendReviewRow, getAllReviews } from "@/lib/google-sheets";
 import { Review } from "@/lib/types";
 import { getCurrentUser } from "@/lib/session";
+
+export async function GET() {
+  try {
+    const reviews = await getAllReviews();
+    return NextResponse.json({ reviews });
+  } catch (error) {
+    console.error("Error in GET /api/reviews:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -28,3 +38,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
+

@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
 import Header from "@/components/Header";
-import ReviewForm from "./ReviewForm"; // We will create this
+import ReviewForm from "./ReviewForm";
 import HrAssistant from "./HrAssistant";
+import LowScorersPanel from "./LowScorersPanel";
 
 export default async function ManagerDashboard() {
   const user = await getCurrentUser();
@@ -25,6 +26,8 @@ export default async function ManagerDashboard() {
           </div>
         </div>
 
+
+        {/* Review form + HR Assistant */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 bg-white shadow rounded-lg p-6">
             <h3 className="text-lg font-medium text-gray-900 mb-6 border-b border-gray-100 pb-2">New Review</h3>
@@ -34,7 +37,13 @@ export default async function ManagerDashboard() {
             <HrAssistant />
           </div>
         </div>
+
+        {/* Low Scorers Action Plans — full width */}
+        <div className="mt-8">
+          <LowScorersPanel />
+        </div>
       </main>
     </div>
   );
 }
+

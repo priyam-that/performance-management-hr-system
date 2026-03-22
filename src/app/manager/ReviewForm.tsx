@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { USERS, User } from "@/lib/auth";
 import { Sparkles, Send, Loader2, CheckCircle2, Star } from "lucide-react";
 
@@ -28,6 +28,21 @@ export default function ReviewForm() {
   
   const [improvementPlan, setImprovementPlan] = useState("");
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
+  const commentRef = useRef<HTMLTextAreaElement>(null);
+
+  // Listen for plan injections from the LowScorersPanel below
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const plan = (e as CustomEvent<{ plan: string }>).detail.plan;
+      setComment((prev) =>
+        prev.trim() ? `${prev}\n\nAction Plan:\n${plan}` : `Action Plan:\n${plan}`
+      );
+      // Scroll the textarea into view so the manager notices
+      setTimeout(() => commentRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 100);
+    };
+    window.addEventListener("review-append-plan", handler);
+    return () => window.removeEventListener("review-append-plan", handler);
+  }, []);
   
   const hasLowScore = outputQuality <= 2 || attendance <= 2 || teamwork <= 2;
 
@@ -219,6 +234,7 @@ export default function ReviewForm() {
           </button>
         </div>
         <textarea
+          ref={commentRef}
           rows={5}
           value={comment}
           onChange={(e) => setComment(e.target.value)}
